@@ -3,16 +3,16 @@ window.onload = function() {
     this.canvas.style.border = "2px solid black";
     var ctx = canvas.getContext("2d");
 
-    this.bot = new Robot(ctx, 260, canvas.height - 32, 65, 65, 0, "1px solid black", "#ddd");
+    this.bot = new Robot(ctx, canvas.width, canvas.height, 65, 65, 0, "1px solid black", "#ddd");
     this.bot.setRotation(-90);
 
     this.keysPressed = [];
-    this.currentState = "START";
+    this.currentState = "STRAFE_TO_BEACON";
 
     this.background = new Image();
     this.background.src = "vvmap.png";
 
-    this.tgt = new Target(ctx, 5, 345);
+    this.tgt = new Target(ctx, 10, 350);
 
     document.addEventListener("keydown", function(e) {
         window.keysPressed[e.keyCode] = true; // keeps track of pressed keys
@@ -27,23 +27,15 @@ window.onload = function() {
 
 function update() {
 
-    console.log("x: " + parseInt(this.bot.position.x) + ", y: " + parseInt(this.bot.position.y));
-    var bx = this.bot.position.x-37;
-    var by = this.bot.position.y;
-    var tx = this.tgt.position.x;
-    var ty = this.tgt.position.y;
-    console.log((1/Math.sqrt(((bx-tx)*(bx-tx)) + ((by-ty)*(by-ty))))*(bx-tx));
-    console.log((1/Math.sqrt(((bx-tx)*(bx-tx)) + ((by-ty)*(by-ty))))*(by-ty));
-
     if (this.currentState === "START") {
         if (!this.stateTime) {
             this.stateTime = Date.now();
-        } else if (Date.now() - this.stateTime > 2500) {
+        } else if (Date.now() - this.stateTime > 900) {
             this.stateTime = null;
             this.currentState = "STRAFE_TO_BEACON";
         }
 
-        this.bot.setVelocityY(0.5);
+        this.bot.setVelocityY(1);
     }
 
     if (this.currentState === "REV") {
@@ -71,12 +63,22 @@ function update() {
     if (this.currentState === "STRAFE_TO_BEACON") {
         if (!this.stateTime) {
             this.stateTime = Date.now();
-        } else if (Date.now() - this.stateTime > 5000) {
+
+        } else if (Date.now() - this.stateTime > 12000) { // this.bot.getSide("left") < 10
             this.stateTime = null;
             this.currentState = null;
         }
 
-        this.bot.setVelocities((1/Math.sqrt(((bx-tx)*(bx-tx)) + ((by-ty)*(by-ty))))*(by-ty)/3, (1/Math.sqrt(((bx-tx)*(bx-tx)) + ((by-ty)*(by-ty))))*(bx-tx)/3, 0);
+        var bx = this.bot.getPosition().x;
+        var by = this.bot.getPosition().y;
+        var tx = this.tgt.position.x;
+        var ty = this.tgt.position.y;
+
+        var hyp = Math.sqrt(Math.pow(bx-tx, 2) + Math.pow(by-ty, 2));
+
+        this.heading = [(1/hyp)*(by-ty), (1/hyp)*(bx-tx)];
+        console.log((this.heading[0]/this.heading[1])*1);
+        this.bot.setVelocities((this.heading[0]/this.heading[1]), 0, 0);
     }
 
     if (this.currentState === "FIND_LINE") {
@@ -103,7 +105,7 @@ function Target(ctx, x, y) {
     this.position = {x: x, y: y};
     this.draw = function() {
         this.context.fillStyle = "black";
-        this.context.fillRect(this.position.x, this.position.y, 10, 10);
+        this.context.fillRect(this.position.x-5, this.position.y-5, 10, 10);
     }
 }
 
@@ -113,6 +115,23 @@ function Robot(ctx, x, y, w, h, r, sc, fc) {
     this.size = {w: w, h: h};
     this.color = {fillColor: fc, strokeColor: sc};
     this.velocities = {translationSpeed: {x: 0, y: 0}, rotationSpeed: 0};
+
+    this.getSide = function(side) {
+        switch (side) {
+            case "left":
+                return this.position.x - this.size.w/2;
+            case "right":
+                return this.position.x + this.size.w/2;
+            case "front":
+                return this.position.y + this.size.h/2;
+            case "back":
+                return this.position.y - this.size.h/2;
+        }
+    };
+
+    this.getPosition = function() { // gets the position of the center of the bot
+        return {x: this.position.x + this.size.w/2, y: this.position.y + this.size.h/2};
+    };
 
     this.setVelocities = function(fm, sm, rm) {
         this.velocities.translationSpeed.x = sm;
@@ -146,28 +165,28 @@ function Robot(ctx, x, y, w, h, r, sc, fc) {
 
     this.draw = function() {
 
-        this.position.x += (this.velocities.translationSpeed.y * 10) * Math.cos(this.position.r);
-        this.position.y += (this.velocities.translationSpeed.y * 6.6) * Math.sin(this.position.r);
-        this.position.x += (this.velocities.translationSpeed.x * 10) * Math.sin(this.position.r);
-        this.position.y += (this.velocities.translationSpeed.x * 6.6) * Math.cos(this.position.r);
+        this.position.x += (this.velocities.translationSpeed.y * Math.cos(this.position.r));
+        this.position.y += (this.velocities.translationSpeed.y * Math.sin(this.position.r));
+        this.position.x += (this.velocities.translationSpeed.x * Math.sin(this.position.r));
+        this.position.y += (this.velocities.translationSpeed.x * Math.cos(this.position.r));
         this.setRotation(this.getRotation() + this.getVelocityR());
         //this.setRotation(100);
 
         //Friction simulation
         if (this.velocities.translationSpeed.y < 0.1 && this.velocities.translationSpeed.y > -0.1) {
-            this.velocities.translationSpeed.y = 0;
+            //this.velocities.translationSpeed.y = 0;
         } else if (this.velocities.translationSpeed.y > 0) {
-            this.velocities.translationSpeed.y *= 0.75;
+            //this.velocities.translationSpeed.y *= 0.75;
         } else if (this.velocities.translationSpeed.y < 0) {
-            this.velocities.translationSpeed.y *= 0.75;
+            //this.velocities.translationSpeed.y *= 0.75;
         }
 
         if (this.velocities.translationSpeed.x < 0.1 && this.velocities.translationSpeed.x > -0.1) {
             this.velocities.translationSpeed.x = 0;
         } else if (this.velocities.translationSpeed.x > 0) {
-            this.velocities.translationSpeed.x *= 0.75;
+            //this.velocities.translationSpeed.x *= 0.75;
         } else if (this.velocities.translationSpeed.x < 0) {
-            this.velocities.translationSpeed.x *= 0.75;
+            //this.velocities.translationSpeed.x *= 0.75;
         }
 
         if (this.velocities.rotationSpeed < 0.01 && this.velocities.rotationSpeed > -0.01) {
@@ -195,17 +214,17 @@ function Robot(ctx, x, y, w, h, r, sc, fc) {
 
         //draw object
         this.context.translate(-(this.size.w / 2),-(this.size.h / 2)); // move origin to top left corner of object
+
         this.context.beginPath();
         this.context.fillStyle = "#eee";
         this.context.fillRect(0, 0, this.size.w, this.size.h);
         this.context.strokeStyle = "black";
         this.context.strokeRect(0, 0, this.size.w, this.size.h);
-        /*this.context.moveTo(this.size.w/2, 0);
-        this.context.lineTo(this.size.w, this.size.height);
-        this.context.lineTo(0, this.size.height);
-        this.context.fill();*/
-
         this.context.closePath();
+
+        this.context.fillStyle = "black";
+        this.context.fillRect(this.size.w/2 - 3, this.size.h/2 - 3, 6, 6);
+
         this.context.restore();
     };
 }
