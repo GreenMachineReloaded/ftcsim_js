@@ -32,7 +32,9 @@ function update() {
 	var tx = this.tgt.position.x;
 	var ty = this.tgt.position.y;
 
-	var currentAngle = Math.atan2((bx-tx), (by-ty))*(180/Math.PI);
+	var xDistToBeacon = bx - tx;
+	var yDistToBeacon = by - ty;
+	var currentAngle = Math.atan2(xDistToBeacon, yDistToBeacon)*(180/Math.PI);
 
     if (this.currentState === "START") {
         if (!this.stateTime) {
@@ -68,11 +70,9 @@ function update() {
     }
 
 	if (this.currentState === "STRAFE_LEFT_TO_BEACON") {
-		console.log(currentAngle);
-
 		if (!this.stateTime) {
             this.stateTime = Date.now();
-        } else if (currentAngle < 50) { // this.bot.getSide("left") < 10
+        } else if (currentAngle < 62) { // this.bot.getSide("left") < 10
             this.stateTime = null;
             this.currentState = "STRAFE_LEFT_45_TO_BEACON";
         }
@@ -83,34 +83,31 @@ function update() {
 	if (this.currentState === "STRAFE_LEFT_45_TO_BEACON") {
 		if (!this.stateTime) {
             this.stateTime = Date.now();
-        } else if (currentAngle > 85) { // this.bot.getSide("left") < 10
+        } else if (currentAngle > 89) { // this.bot.getSide("left") < 10
             this.stateTime = null;
-            this.currentState = "TELEOP";
+            this.currentState = "STRAFE_TO_BEACON";
         }
 
         this.bot.setVelocities(0.4, -0.2, 0.0);
 	}
 
-    if (this.currentState === "STRAFE_LEFT_BEACON") {
+    if (this.currentState === "STRAFE_TO_BEACON") {
         if (!this.stateTime) {
             this.stateTime = Date.now();
-        } else if (Date.now() - this.stateTime > 12000) { // this.bot.getSide("left") < 10
+        } else if (xDistToBeacon < 55) { // this.bot.getSide("left") < 10
             this.stateTime = null;
-            this.currentState = null;
+            this.currentState = "TELEOP";
         }
 
-        this.bot.setVelocities(0.1, -0.3, 0.0);
-    }
+		if (currentAngle > 91) {
+			this.bot.setVelocityY(-0.2);
+		}
 
-    if (this.currentState === "FIND_LINE") {
-        if (!this.stateTime) {
-            this.stateTime = Date.now();
-        } else if (Date.now() - this.stateTime > 1800) {
-            this.stateTime = null;
-            this.currentState = null;
-        }
+		if (currentAngle < 89) {
+			this.bot.setVelocityY(0.2);
+		}
 
-        this.bot.setVelocityY(0.3);
+        this.bot.setVelocityX(-0.3);
     }
 
 	if (this.currentState === "TELEOP") {
@@ -218,11 +215,18 @@ function Robot(ctx, x, y, w, h, r, sc, fc) {
     }
 
     this.draw = function() {
+		var randX = 0,randY = 0, randR = 0;
 
-        this.position.x += (this.velocities.translationSpeed.y * Math.cos(this.position.r)) * 5;
-		this.position.x -= (this.velocities.translationSpeed.x * Math.sin(this.position.r)) * 3.3;
-        this.position.y += (this.velocities.translationSpeed.y * Math.sin(this.position.r)) * 5;
-        this.setRotation(this.getRotation() + this.getVelocityR());
+		if (this.velocities.translationSpeed.x !== 0 || this.velocities.translationSpeed.y !== 0) {
+			randX = (Math.random()-0.5);
+			randY = (Math.random()-0.5);
+			randR = (Math.random()-0.5)/2;
+		}
+
+        this.position.x += ((this.velocities.translationSpeed.y * Math.cos(this.position.r)) * 5) + randX;
+		this.position.x -= ((this.velocities.translationSpeed.x * Math.sin(this.position.r)) * 3.3);
+        this.position.y += ((this.velocities.translationSpeed.y * Math.sin(this.position.r)) * 5) + randY;
+        this.setRotation(this.getRotation() + this.getVelocityR() + randR);
 
         //Friction simulation
         if (this.velocities.translationSpeed.y < 0.1 && this.velocities.translationSpeed.y > -0.1) {
