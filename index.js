@@ -3,11 +3,11 @@ window.onload = function() {
     this.canvas.style.border = "2px solid black";
     var ctx = canvas.getContext("2d");
 
-    this.bot = new Robot(ctx, canvas.width, canvas.height, 65, 65, 0, "1px solid black", "#ddd");
+    this.bot = new Robot(ctx, 253, canvas.height - 40, 65, 65, 0, "1px solid black", "#ddd");
     this.bot.setRotation(-90);
 
     this.keysPressed = [];
-    this.currentState = "STRAFE_TO_BEACON";
+    this.currentState = "START";
 
     this.background = new Image();
     this.background.src = "vvmap.png";
@@ -27,15 +27,24 @@ window.onload = function() {
 
 function update() {
 
+	var bx = this.bot.getPosition().x - this.bot.size.w/2;
+	var by = this.bot.getPosition().y - this.bot.size.h/2;
+	var tx = this.tgt.position.x;
+	var ty = this.tgt.position.y;
+
+	console.log("x: " + bx + " y: " + by);
+
+	var currentAngle = Math.atan2((bx-tx), (by-ty))*(180/Math.PI);
+
     if (this.currentState === "START") {
         if (!this.stateTime) {
             this.stateTime = Date.now();
-        } else if (Date.now() - this.stateTime > 900) {
+        } else if (Date.now() - this.stateTime > 1900) {
             this.stateTime = null;
-            this.currentState = "STRAFE_TO_BEACON";
+            this.currentState = "STRAFE_LEFT_TO_BEACON";
         }
 
-        this.bot.setVelocityY(1);
+        this.bot.setVelocityY(0.6);
     }
 
     if (this.currentState === "REV") {
@@ -60,25 +69,41 @@ function update() {
         this.bot.setVelocityX(0.3);
     }
 
-    if (this.currentState === "STRAFE_TO_BEACON") {
+	if (this.currentState === "STRAFE_LEFT_TO_BEACON") {
+		console.log(currentAngle);
+
+		if (!this.stateTime) {
+            this.stateTime = Date.now();
+        } else if (currentAngle < 50) { // this.bot.getSide("left") < 10
+            this.stateTime = null;
+            this.currentState = "STRAFE_LEFT_45_TO_BEACON";
+        }
+
+        this.bot.setVelocities(0.0, -0.5, 0.0);
+	}
+
+	if (this.currentState === "STRAFE_LEFT_45_TO_BEACON") {
+		console.log(currentAngle);
+
+		if (!this.stateTime) {
+            this.stateTime = Date.now();
+        } else if (currentAngle > 85) { // this.bot.getSide("left") < 10
+            this.stateTime = null;
+            this.currentState = null;
+        }
+
+        this.bot.setVelocities(0.4, -0.2, 0.0);
+	}
+
+    if (this.currentState === "STRAFE_LEFT_BEACON") {
         if (!this.stateTime) {
             this.stateTime = Date.now();
-
         } else if (Date.now() - this.stateTime > 12000) { // this.bot.getSide("left") < 10
             this.stateTime = null;
             this.currentState = null;
         }
 
-        var bx = this.bot.getPosition().x;
-        var by = this.bot.getPosition().y;
-        var tx = this.tgt.position.x;
-        var ty = this.tgt.position.y;
-
-        var hyp = Math.sqrt(Math.pow(bx-tx, 2) + Math.pow(by-ty, 2));
-
-        this.heading = [(1/hyp)*(by-ty), (1/hyp)*(bx-tx)];
-        console.log((this.heading[0]/this.heading[1])*1);
-        this.bot.setVelocities((this.heading[0]/this.heading[1]), 0, 0);
+        this.bot.setVelocities(0.1, -0.3, 0.0);
     }
 
     if (this.currentState === "FIND_LINE") {
@@ -165,28 +190,25 @@ function Robot(ctx, x, y, w, h, r, sc, fc) {
 
     this.draw = function() {
 
-        this.position.x += (this.velocities.translationSpeed.y * Math.cos(this.position.r));
-        this.position.y += (this.velocities.translationSpeed.y * Math.sin(this.position.r));
-        this.position.x += (this.velocities.translationSpeed.x * Math.sin(this.position.r));
-        this.position.y += (this.velocities.translationSpeed.x * Math.cos(this.position.r));
+        this.position.x -= this.velocities.translationSpeed.x * Math.sin(this.position.r) * 3.3;
+        this.position.y += this.velocities.translationSpeed.y * Math.sin(this.position.r) * 5;
         this.setRotation(this.getRotation() + this.getVelocityR());
-        //this.setRotation(100);
 
         //Friction simulation
         if (this.velocities.translationSpeed.y < 0.1 && this.velocities.translationSpeed.y > -0.1) {
-            //this.velocities.translationSpeed.y = 0;
+            this.velocities.translationSpeed.y = 0;
         } else if (this.velocities.translationSpeed.y > 0) {
-            //this.velocities.translationSpeed.y *= 0.75;
+            this.velocities.translationSpeed.y *= 0.75;
         } else if (this.velocities.translationSpeed.y < 0) {
-            //this.velocities.translationSpeed.y *= 0.75;
+            this.velocities.translationSpeed.y *= 0.75;
         }
 
         if (this.velocities.translationSpeed.x < 0.1 && this.velocities.translationSpeed.x > -0.1) {
             this.velocities.translationSpeed.x = 0;
         } else if (this.velocities.translationSpeed.x > 0) {
-            //this.velocities.translationSpeed.x *= 0.75;
+            this.velocities.translationSpeed.x *= 0.75;
         } else if (this.velocities.translationSpeed.x < 0) {
-            //this.velocities.translationSpeed.x *= 0.75;
+            this.velocities.translationSpeed.x *= 0.75;
         }
 
         if (this.velocities.rotationSpeed < 0.01 && this.velocities.rotationSpeed > -0.01) {
