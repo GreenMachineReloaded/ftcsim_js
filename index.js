@@ -32,8 +32,6 @@ function update() {
 	var tx = this.tgt.position.x;
 	var ty = this.tgt.position.y;
 
-	console.log("x: " + bx + " y: " + by);
-
 	var currentAngle = Math.atan2((bx-tx), (by-ty))*(180/Math.PI);
 
     if (this.currentState === "START") {
@@ -83,13 +81,11 @@ function update() {
 	}
 
 	if (this.currentState === "STRAFE_LEFT_45_TO_BEACON") {
-		console.log(currentAngle);
-
 		if (!this.stateTime) {
             this.stateTime = Date.now();
         } else if (currentAngle > 85) { // this.bot.getSide("left") < 10
             this.stateTime = null;
-            this.currentState = null;
+            this.currentState = "TELEOP";
         }
 
         this.bot.setVelocities(0.4, -0.2, 0.0);
@@ -116,6 +112,39 @@ function update() {
 
         this.bot.setVelocityY(0.3);
     }
+
+	if (this.currentState === "TELEOP") {
+		if (!this.stateTime) {
+            this.stateTime = Date.now();
+        } else if (1>1) { // this.bot.getSide("left") < 10
+            this.stateTime = null;
+            this.currentState = null;
+        }
+
+		if (this.keysPressed[87]) {
+			this.bot.setVelocityY(0.7);
+		}
+
+		if (this.keysPressed[83]) {
+			this.bot.setVelocityY(-0.7);
+		}
+
+		if (this.keysPressed[65]) {
+			this.bot.setVelocityX(-0.7);
+		}
+
+		if (this.keysPressed[68]) {
+			this.bot.setVelocityX(0.7);
+		}
+
+		if (this.keysPressed[81]) {
+			this.bot.setVelocityR(-5);
+		}
+
+		if (this.keysPressed[69]) {
+			this.bot.setVelocityR(5);
+		}
+	}
 
     var ctx = document.getElementById("field").getContext("2d");
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -190,33 +219,34 @@ function Robot(ctx, x, y, w, h, r, sc, fc) {
 
     this.draw = function() {
 
-        this.position.x -= this.velocities.translationSpeed.x * Math.sin(this.position.r) * 3.3;
-        this.position.y += this.velocities.translationSpeed.y * Math.sin(this.position.r) * 5;
+        this.position.x += (this.velocities.translationSpeed.y * Math.cos(this.position.r)) * 5;
+		this.position.x -= (this.velocities.translationSpeed.x * Math.sin(this.position.r)) * 3.3;
+        this.position.y += (this.velocities.translationSpeed.y * Math.sin(this.position.r)) * 5;
         this.setRotation(this.getRotation() + this.getVelocityR());
 
         //Friction simulation
         if (this.velocities.translationSpeed.y < 0.1 && this.velocities.translationSpeed.y > -0.1) {
             this.velocities.translationSpeed.y = 0;
         } else if (this.velocities.translationSpeed.y > 0) {
-            this.velocities.translationSpeed.y *= 0.75;
+            this.velocities.translationSpeed.y *= 0.65;
         } else if (this.velocities.translationSpeed.y < 0) {
-            this.velocities.translationSpeed.y *= 0.75;
+            this.velocities.translationSpeed.y *= 0.65;
         }
 
         if (this.velocities.translationSpeed.x < 0.1 && this.velocities.translationSpeed.x > -0.1) {
             this.velocities.translationSpeed.x = 0;
         } else if (this.velocities.translationSpeed.x > 0) {
-            this.velocities.translationSpeed.x *= 0.75;
+            this.velocities.translationSpeed.x *= 0.65;
         } else if (this.velocities.translationSpeed.x < 0) {
-            this.velocities.translationSpeed.x *= 0.75;
+            this.velocities.translationSpeed.x *= 0.65;
         }
 
         if (this.velocities.rotationSpeed < 0.01 && this.velocities.rotationSpeed > -0.01) {
             this.velocities.rotationSpeed = 0;
         } else if (this.velocities.rotationSpeed > 0) {
-            this.velocities.rotationSpeed *= 0.85;
+            this.velocities.rotationSpeed *= 0.75;
         } else if (this.velocities.rotationSpeed < 0) {
-            this.velocities.rotationSpeed *= 0.85;
+            this.velocities.rotationSpeed *= 0.75;
         }
 
         // stops bot from going outside the canvas
