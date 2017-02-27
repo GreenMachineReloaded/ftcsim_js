@@ -4,25 +4,26 @@ window.onload = function() {
     App.canvas = document.getElementById("field");
     App.canvas.style.border = "2px solid black";
     var ctx = App.canvas.getContext("2d");
-    console.log(new Robot());
 
     App.bot = new Robot(ctx, 253, App.canvas.height - 43, 65, 65, 0, "1px solid black", "#ddd");
-    App.bot.setRotation(-45);
+    App.bot.setRotation(-90);
 
     App.keysPressed = [];
-    App.currentState = "STAR";
+    App.currentState = "START";
 
     App.background = new Image();
     App.background.src = "vvmap.png";
 
-    App.tgt = new Target(ctx, 350, 10);
+    App.tgt = new Target(ctx, 10, 350);
+
+    App.keysPressed = [];
 
     document.addEventListener("keydown", function(e) {
-        window.keysPressed[e.keyCode] = true; // keeps track of pressed keys
+        App.keysPressed[e.keyCode] = true; // keeps track of pressed keys
     });
 
     document.addEventListener("keyup", function(e) {
-        window.keysPressed[e.keyCode] = false; // indicates that the key is no longer pressed
+        App.keysPressed[e.keyCode] = false; // indicates that the key is no longer pressed
     });
 
     window.setInterval(update, 5, 5);
@@ -35,18 +36,19 @@ function update(interval) {
     var tx = App.tgt.position.x;
     var ty = App.tgt.position.y;
 
+    var xDistToBeacon = bx - tx;
+	var yDistToBeacon = by - ty;
     var currentAngle = Math.atan2((bx-tx), (by-ty))*(180/Math.PI);
 
     if (App.currentState === "START") {
         if (!App.stateTime) {
             App.stateTime = Date.now();
-        } else if (Date.now() - App.stateTime > 18000) {
+        } else if (Date.now() - App.stateTime > 1700) {
             App.stateTime = null;
-            //App.currentState = "STRAFE_LEFT_TO_BEACON";
-            App.currentState = null;
+            App.currentState = "STRAFE_LEFT_TO_BEACON";
         }
 
-        App.bot.setVelocities(0.7, 0.0, 5);
+        App.bot.setVelocityY(0.7);
     }
 
     if (App.currentState === "REV") {
@@ -93,6 +95,55 @@ function update(interval) {
         App.bot.setVelocities(0.4, -0.2, 0.0);
     }
 
+    if (App.currentState === "STRAFE_TO_BEACON") {
+        if (!App.stateTime) {
+            App.stateTime = Date.now();
+        } else if (xDistToBeacon < 55) { // App.bot.getSide("left") < 10
+            App.stateTime = null;
+            App.currentState = "TELEOP";
+        }
+
+		if (currentAngle > 91) {
+			App.bot.setVelocityY(-0.2);
+		}
+
+		if (currentAngle < 89) {
+			App.bot.setVelocityY(0.2);
+		}
+
+        App.bot.setVelocityX(-0.3);
+    }
+
+	if (App.currentState === "TELEOP") {
+		if (!App.stateTime) {
+            App.stateTime = Date.now();
+        }
+
+		if (App.keysPressed[87]) {
+			App.bot.setVelocityY(0.7);
+		}
+
+		if (App.keysPressed[83]) {
+			App.bot.setVelocityY(-0.7);
+		}
+
+		if (App.keysPressed[65]) {
+			App.bot.setVelocityX(-0.7);
+		}
+
+		if (App.keysPressed[68]) {
+			App.bot.setVelocityX(0.7);
+		}
+
+		if (App.keysPressed[81]) {
+			App.bot.setVelocityR(-90);
+		}
+
+		if (App.keysPressed[69]) {
+			App.bot.setVelocityR(90);
+		}
+	}
+
     if (App.currentState === "STRAFE_LEFT_BEACON") {
         if (!App.stateTime) {
             App.stateTime = Date.now();
@@ -102,17 +153,6 @@ function update(interval) {
         }
 
         App.bot.setVelocities(0.1, -0.3, 0.0);
-    }
-
-    if (App.currentState === "FIND_LINE") {
-        if (!App.stateTime) {
-            App.stateTime = Date.now();
-        } else if (Date.now() - App.stateTime > 1800) {
-            App.stateTime = null;
-            App.currentState = null;
-        }
-
-        App.bot.setVelocityY(0.3);
     }
 
     App.bot.update(interval);

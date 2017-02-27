@@ -5,6 +5,7 @@ function Robot(ctx, x, y, w, h, r, sc, fc) {
     this.color = {fillColor: fc, strokeColor: sc};
     this.velocities = {translationSpeed: {x: 0, y: 0}, rotationSpeed: 0};
     this.frictionMultipler = 0.50; //lose 80% of speed per 1/20 second
+    this.drift = {x: 0, y: 0, r: 0};
 
     this.getSide = function(side) {
         switch (side) {
@@ -34,22 +35,22 @@ function Robot(ctx, x, y, w, h, r, sc, fc) {
 
     this.setVelocities = function(fm, sm, rm) {
         if (fm) {
-            this.velocities.translationSpeed.y = fm/2;
+            this.velocities.translationSpeed.y = fm;
         }
 
         if (sm) {
-            this.velocities.translationSpeed.x = sm/2;
+            this.velocities.translationSpeed.x = sm;
         }
 
         this.velocities.rotationSpeed = rm*(Math.PI/180);
     };
 
     this.setVelocityY = function(fm) {
-        this.velocities.translationSpeed.y = fm/2;
+        this.velocities.translationSpeed.y = fm;
     };
 
     this.setVelocityX = function(sm) {
-        this.velocities.translationSpeed.x = sm/2;
+        this.velocities.translationSpeed.x = sm;
     };
 
     this.setVelocityR = function(rm) { // takes degrees
@@ -77,7 +78,7 @@ function Robot(ctx, x, y, w, h, r, sc, fc) {
     this.update = function(interval) {
         var updatesPerSecond = 1000/interval;
 
-        // stops bot from going outside the canvas
+        /* stops bot from going outside the canvas
         var corners = this.getCorners();
         for (var c in corners) {
             for (var v in corners[c]) {
@@ -86,7 +87,7 @@ function Robot(ctx, x, y, w, h, r, sc, fc) {
                     this.stop();
                 }
             }
-        }
+        }*/
 
         //Friction simulation
         var frictionM = (1-(this.frictionMultipler/updatesPerSecond*20));
@@ -114,9 +115,21 @@ function Robot(ctx, x, y, w, h, r, sc, fc) {
             this.velocities.rotationSpeed *= frictionM;
         }
 
-        this.position.x -= this.velocities.translationSpeed.x * Math.sin(this.position.r) * (2/3);
-        this.position.y += this.velocities.translationSpeed.y * Math.sin(this.position.r);
-        this.setRotation(this.getRotation() + (this.getVelocityR()/updatesPerSecond));
+		if (this.velocities.translationSpeed.x || this.velocities.translationSpeed.y || this.velocities.rotationSpeed) {
+            var tmpDriftX = (Math.random()-0.5)*0.7;
+            var tmpDriftY = (Math.random()-0.5)*0.7;
+            var tmpDriftR = (Math.random()-0.5)/2;
+			this.drift.x = (this.drift.x + tmpDriftX) / 2;
+			this.drift.y = (this.drift.y + tmpDriftY) / 2;
+			this.drift.r = (this.drift.r + tmpDriftR) / 2;
+		}
+
+        this.position.x += ((this.velocities.translationSpeed.y * Math.cos(this.position.r))) + this.drift.x;
+        this.position.y += ((this.velocities.translationSpeed.y * Math.sin(this.position.r))) + this.drift.y;
+
+        this.position.x -= ((this.velocities.translationSpeed.x * Math.sin(this.position.r)) * (2/3));
+        this.position.y += ((this.velocities.translationSpeed.x * Math.cos(this.position.r)) * (2/3));
+        this.setRotation(this.getRotation() + (this.getVelocityR()/updatesPerSecond) + this.drift.r);
     };
 
     this.draw = function() {
