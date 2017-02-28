@@ -9,7 +9,7 @@ window.onload = function() {
     App.bot.setRotation(-90);
 
     App.keysPressed = [];
-    App.currentState = "START";
+    App.currentState = "TELEOP";
 
     App.background = new Image();
     App.background.src = "vvmap.png";
@@ -31,6 +31,7 @@ window.onload = function() {
 };
 
 function update(interval) {
+    this.timer = Date.now();
     var bx = App.bot.getPosition().x - App.bot.size.w/2;
     var by = App.bot.getPosition().y - App.bot.size.h/2;
     var tx = App.tgt.position.x;
@@ -136,11 +137,11 @@ function update(interval) {
 		}
 
 		if (App.keysPressed[81]) {
-			App.bot.setVelocityR(-90);
+			App.bot.setVelocityR(-75);
 		}
 
 		if (App.keysPressed[69]) {
-			App.bot.setVelocityR(90);
+			App.bot.setVelocityR(75);
 		}
 	}
 
@@ -156,6 +157,7 @@ function update(interval) {
     }
 
     App.bot.update(interval);
+    if (Date.now() - this.timer > 0) console.log((Date.now() - this.timer) + "ms");
 }
 
 function draw() {

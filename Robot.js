@@ -6,6 +6,12 @@ function Robot(ctx, x, y, w, h, r, sc, fc) {
     this.velocities = {translationSpeed: {x: 0, y: 0}, rotationSpeed: 0};
     this.frictionMultipler = 0.50; //lose 80% of speed per 1/20 second
     this.drift = {x: 0, y: 0, r: 0};
+    this.corners = {
+        frontLeft: 0,
+        frontRight: 0,
+        backLeft: 0,
+        backRight: 0
+    };
 
     this.getSide = function(side) {
         switch (side) {
@@ -34,11 +40,11 @@ function Robot(ctx, x, y, w, h, r, sc, fc) {
     };
 
     this.setVelocities = function(fm, sm, rm) {
-        if (fm) {
+        if (fm !== null) {
             this.velocities.translationSpeed.y = fm;
         }
 
-        if (sm) {
+        if (sm !== null) {
             this.velocities.translationSpeed.x = sm;
         }
 
@@ -78,20 +84,9 @@ function Robot(ctx, x, y, w, h, r, sc, fc) {
     this.update = function(interval) {
         var updatesPerSecond = 1000/interval;
 
-        /* stops bot from going outside the canvas
-        var corners = this.getCorners();
-        for (var c in corners) {
-            for (var v in corners[c]) {
-
-                if (corners[c][v] < 10 || corners[c][v] > this.context.canvas.width - 10 || corners[c][v] > this.context.canvas.height - 10) {
-                    this.stop();
-                }
-            }
-        }*/
-
         //Friction simulation
         var frictionM = (1-(this.frictionMultipler/updatesPerSecond*20));
-        if (this.velocities.translationSpeed.y < 0.001 && this.velocities.translationSpeed.y > -0.001) {
+        if (this.velocities.translationSpeed.y < 0.01 && this.velocities.translationSpeed.y > -0.01) {
             this.velocities.translationSpeed.y = 0;
         } else if (this.velocities.translationSpeed.y > 0) {
             this.velocities.translationSpeed.y *= frictionM;
@@ -99,7 +94,7 @@ function Robot(ctx, x, y, w, h, r, sc, fc) {
             this.velocities.translationSpeed.y *= frictionM;
         }
 
-        if (this.velocities.translationSpeed.x < 0.001 && this.velocities.translationSpeed.x > -0.001) {
+        if (this.velocities.translationSpeed.x < 0.01 && this.velocities.translationSpeed.x > -0.01) {
             this.velocities.translationSpeed.x = 0;
         } else if (this.velocities.translationSpeed.x > 0) {
             this.velocities.translationSpeed.x *= frictionM;
@@ -107,29 +102,63 @@ function Robot(ctx, x, y, w, h, r, sc, fc) {
             this.velocities.translationSpeed.x *= frictionM;
         }
 
-        if (this.velocities.rotationSpeed < 0.001 && this.velocities.rotationSpeed > -0.001) {
-            this.velocities.rotationSpeed = 0;
-        } else if (this.velocities.rotationSpeed > 0) {
-            this.velocities.rotationSpeed *= frictionM;
-        } else if (this.velocities.rotationSpeed < 0) {
-            this.velocities.rotationSpeed *= frictionM;
+        if (this.getVelocityR() < 0.1 && this.getVelocityR() > -0.1) {
+            this.setVelocityR(this.getVelocityR() * frictionM);
+        } else if (this.getVelocityR() > 0) {
+            this.setVelocityR(this.getVelocityR() * frictionM);
+        } else if (this.getVelocityR() < 0) {
+            this.setVelocityR(this.getVelocityR() * frictionM);
         }
 
-		if (this.velocities.translationSpeed.x || this.velocities.translationSpeed.y || this.velocities.rotationSpeed) {
-            var tmpDriftX = (Math.random()-0.5)*0.7;
-            var tmpDriftY = (Math.random()-0.5)*0.7;
-            var tmpDriftR = (Math.random()-0.5)/2;
-			this.drift.x = (this.drift.x + tmpDriftX) / 2;
-			this.drift.y = (this.drift.y + tmpDriftY) / 2;
-			this.drift.r = (this.drift.r + tmpDriftR) / 2;
-		}
+        var xWall = 0;
+        var yWall = 0;
+        var tSpeed = this.velocities.translationSpeed.y;
+        var rSpeed = this.getVelocityR();
+        for (c in this.corners) {
+            if (c === "frontLeft" || c === "frontRight") {
+                if (this.corners[c].x > this.context.canvas.width || this.corners[c].x < 0) {
+                    xWall = -tSpeed-2;
+                }
 
-        this.position.x += ((this.velocities.translationSpeed.y * Math.cos(this.position.r))) + this.drift.x;
-        this.position.y += ((this.velocities.translationSpeed.y * Math.sin(this.position.r))) + this.drift.y;
+                if (this.corners[c].y > this.context.canvas.height || this.corners[c].y < 0) {
+                    yWall = -tSpeed-2;
+                }
+            } else if (c === "backLeft" || c === "backRight") {
+                if (this.corners[c].x > this.context.canvas.width || this.corners[c].x < 0) {
+                    xWall = tSpeed+2;
+                }
 
-        this.position.x -= ((this.velocities.translationSpeed.x * Math.sin(this.position.r)) * (2/3));
-        this.position.y += ((this.velocities.translationSpeed.x * Math.cos(this.position.r)) * (2/3));
-        this.setRotation(this.getRotation() + (this.getVelocityR()/updatesPerSecond) + this.drift.r);
+                if (this.corners[c].y > this.context.canvas.height || this.corners[c].y < 0) {
+                    yWall = tSpeed+2;
+                }
+            }
+        }
+
+        this.position.x += ((tSpeed + xWall)/2 * Math.cos(this.position.r));
+        this.position.y += ((tSpeed + yWall)/2 * Math.sin(this.position.r));
+
+        this.position.x -= (this.velocities.translationSpeed.x/2 * Math.sin(this.position.r)) * (2/3);
+        this.position.y += (this.velocities.translationSpeed.x/2 * Math.cos(this.position.r)) * (2/3);
+        this.setRotation(this.getRotation() + (rSpeed/updatesPerSecond));
+
+        this.corners = {
+            frontLeft: {
+                x: (Math.cos(this.position.r)*(this.size.w/2) - Math.sin(this.position.r)*(-this.size.h/2)) + this.position.x,
+                y: (Math.sin(this.position.r)*(this.size.w/2) + Math.cos(this.position.r)*(-this.size.h/2)) + this.position.y
+            },
+            frontRight: {
+                x: (Math.cos(this.position.r)*(this.size.w/2) - Math.sin(this.position.r)*(this.size.h/2)) + this.position.x,
+                y: (Math.sin(this.position.r)*(this.size.w/2) + Math.cos(this.position.r)*(this.size.h/2)) + this.position.y
+            },
+            backLeft: {
+                x: (Math.cos(this.position.r)*(-this.size.w/2) - Math.sin(this.position.r)*(-this.size.h/2)) + this.position.x,
+                y: (Math.sin(this.position.r)*(-this.size.w/2) + Math.cos(this.position.r)*(-this.size.h/2)) + this.position.y
+            },
+            backRight: {
+                x: (Math.cos(this.position.r)*(-this.size.w/2) - Math.sin(this.position.r)*(this.size.h/2)) + this.position.x,
+                y: (Math.sin(this.position.r)*(-this.size.w/2) + Math.cos(this.position.r)*(this.size.h/2)) + this.position.y
+            }
+        };
     };
 
     this.draw = function() {
@@ -154,5 +183,14 @@ function Robot(ctx, x, y, w, h, r, sc, fc) {
         this.context.fillRect(this.size.w/2 - 3, this.size.h/2 - 3, 6, 6);
 
         this.context.restore();
+
+        this.context.fillStyle = "#0ff";
+        this.context.fillRect(this.corners.frontRight.x - 3, this.corners.frontRight.y - 3, 6, 6);
+        this.context.fillStyle = "#0f0";
+        this.context.fillRect(this.corners.frontLeft.x - 3, this.corners.frontLeft.y - 3, 6, 6);
+        this.context.fillStyle = "#f00";
+        this.context.fillRect(this.corners.backLeft.x - 3, this.corners.backLeft.y - 3, 6, 6);
+        this.context.fillStyle = "#f0f";
+        this.context.fillRect(this.corners.backRight.x - 3, this.corners.backRight.y - 3, 6, 6);
     };
 }
