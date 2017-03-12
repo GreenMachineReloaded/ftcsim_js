@@ -1,3 +1,13 @@
+.container {
+	margin-left: auto;
+	margin-right: auto;
+	width: 600px;
+}
+
+.program > textarea {
+	width: 100%;
+}
+
 #canvas {
     background-image: url("vvmap.png");
 }
