@@ -4,7 +4,30 @@
 	width: 600px;
 }
 
-.program > textarea {
+.errors {
+	border: 2px solid #f11;
+	background-color: #fdd;
+	padding-left: 10px;
+	padding-right: 10px;
+	margin-bottom: 5px;
+	color: #f00;
+	display: none;
+}
+
+.code .header {
+	margin-top: 10px;
+	margin-bottom: 10px;
+}
+
+.code .header span {
+	margin-right: 5px;
+}
+
+.run-button {
+	display: inline-block;
+}
+
+.code textarea {
 	width: 100%;
 }
 
