@@ -17,7 +17,17 @@ window.onload = function() {
 
     App.objects.tgt = new Target(ctx, 10, 350);
 
+	App.loopCount = 0;
+
 	App.code = '';
+	var botCodeTextArea = document.querySelector(".code > textarea");
+	botCodeTextArea.value = localStorage.getItem('code');
+
+	// loading variables into list
+	var appVars = document.querySelector('.variables .list');
+	for (prop in App) {
+		appVars.innerHTML += '<li>App.' + prop + '</li>';
+	}
 
     App.keysPressed = [];
 
@@ -31,7 +41,7 @@ window.onload = function() {
 
 	var runButton = document.getElementsByClassName("run-button")[0];
 	runButton.addEventListener("click", function(e) {
-		var botCodeTextArea = document.querySelector(".code > textarea");
+		localStorage.setItem('code', botCodeTextArea.value);
 		App.code = botCodeTextArea.value;
 	});
 
@@ -51,13 +61,12 @@ function update(interval) {
     var currentAngle = Math.atan2((bx-tx), (by-ty))*(180/Math.PI);
 
 	try {
-		document.querySelector('.errors').style.display = 'none';
-		eval(App.code);
+		document.querySelector('.loop .errors').style.display = 'none';
+		eval(localStorage.getItem('code'));
 	} catch (e) {
-		console.log(e);
-		document.querySelector('.errors').style.display = 'block';
-		var errorHeading = document.querySelector('.errors > h3');
-		var errorMessage = document.querySelector('.errors > p');
+		document.querySelector('.loop .errors').style.display = 'block';
+		var errorHeading = document.querySelector('.loop .errors > h3');
+		var errorMessage = document.querySelector('.loop .errors > p');
 		errorHeading.textContent = e.name;
 		errorMessage.textContent = e.message;
 	}
