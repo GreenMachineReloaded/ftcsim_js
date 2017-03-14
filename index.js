@@ -45,34 +45,39 @@ window.onload = function() {
 		App.code = botCodeTextArea.value;
 	});
 
+	App.timeDisplay = document.getElementById("timer");
+	App.timer = Date.now();
+
     window.setInterval(update, 5, 5);
     window.setInterval(draw, 21, 21);
 };
 
 function update(interval) {
-    this.timer = Date.now();
-    var bx = App.objects.bot.getPosition().x - App.objects.bot.size.w/2;
-    var by = App.objects.bot.getPosition().y - App.objects.bot.size.h/2;
-    var tx = App.objects.tgt.position.x;
-    var ty = App.objects.tgt.position.y;
+	var curTime = Date.now() - App.timer;
+	App.timeDisplay.textContent = Math.round(curTime)/1000;
+	if (curTime < 30000) {
+	    var bx = App.objects.bot.getPosition().x - App.objects.bot.size.w/2;
+	    var by = App.objects.bot.getPosition().y - App.objects.bot.size.h/2;
+	    var tx = App.objects.tgt.position.x;
+	    var ty = App.objects.tgt.position.y;
 
-    var xDistToBeacon = bx - tx;
-	var yDistToBeacon = by - ty;
-    var currentAngle = Math.atan2((bx-tx), (by-ty))*(180/Math.PI);
+	    var xDistToBeacon = bx - tx;
+		var yDistToBeacon = by - ty;
+	    var currentAngle = Math.atan2((bx-tx), (by-ty))*(180/Math.PI);
 
-	try {
-		document.querySelector('.loop .errors').style.display = 'none';
-		eval(localStorage.getItem('code'));
-	} catch (e) {
-		document.querySelector('.loop .errors').style.display = 'block';
-		var errorHeading = document.querySelector('.loop .errors > h3');
-		var errorMessage = document.querySelector('.loop .errors > p');
-		errorHeading.textContent = e.name;
-		errorMessage.textContent = e.message;
+		try {
+			document.querySelector('.loop .errors').style.display = 'none';
+			eval(localStorage.getItem('code'));
+		} catch (e) {
+			document.querySelector('.loop .errors').style.display = 'block';
+			var errorHeading = document.querySelector('.loop .errors > h3');
+			var errorMessage = document.querySelector('.loop .errors > p');
+			errorHeading.textContent = e.name;
+			errorMessage.textContent = e.message;
+		}
+
+	    App.objects.bot.update(interval);
 	}
-
-    App.objects.bot.update(interval);
-    if (Date.now() - this.timer > 0) /*console.log((Date.now() - this.timer) + "ms")*/;
 }
 
 function draw() {
