@@ -110,6 +110,8 @@ function update() {
 		for (o in App.objects) {
 			App.objects[o].update(5);
 		}
+	} else {
+		stop();
 	}
 }
 
