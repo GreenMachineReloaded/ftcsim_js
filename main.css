@@ -25,13 +25,12 @@
 }
 
 .run-button {
-	display: inline-block;
 	background-color: #dfd;
 	font-size: 16px;
 	border: 2px solid #0d0;
 	border-radius: 2px;
 	text-transform: uppercase;
-	float: right;
+	margin-right: 5px;
 	color: #0a0;
 }
 
@@ -39,10 +38,29 @@
 	background-color: #bdb;
 }
 
+.stop-button {
+	background-color: #fdd;
+	font-size: 16px;
+	border: 2px solid #d00;
+	border-radius: 2px;
+	text-transform: uppercase;
+	color: #a00;
+}
+
+.stop-button:active {
+	background-color: #dbb;
+}
+
+.button-container {
+	display: inline-block;
+	float: right;
+}
+
 .code textarea {
 	max-width: 100%;
 	width: 100%;
 	height: 300px;
+	tab-size: 4;
 }
 
 #canvas {

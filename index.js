@@ -3,25 +3,22 @@ var App = {};
 window.onload = function() {
     App.canvas = document.getElementById("field");
     App.canvas.style.border = "2px solid black";
-    var ctx = App.canvas.getContext("2d");
+    App.context = App.canvas.getContext("2d");
 
     App.objects = {};
-    App.objects.bot = new Robot(ctx, 253, App.canvas.height - 43, 65, 65, 0, "1px solid black", "#ddd");
-    App.objects.bot.setRotation(-90);
-
-    App.keysPressed = [];
-    App.currentState = "START";
-
-    App.background = new Image();
+	App.background = new Image();
     App.background.src = "vvmap.png";
+	App.currentState = 'START';
 
-    App.objects.tgt = new Target(ctx, 10, 350);
+	App.getCode = function() {
+		return document.querySelector(".code > textarea").value;
+	};
 
-	App.loopCount = 0;
+	App.setCode = function(c) {
+		document.querySelector(".code > textarea").value = c;
+	};
 
-	App.code = '';
-	var botCodeTextArea = document.querySelector(".code > textarea");
-	botCodeTextArea.value = localStorage.getItem('code');
+	App.setCode(localStorage.getItem('code'));
 
 	// loading variables into list
 	var appVars = document.querySelector('.variables .list');
@@ -39,23 +36,55 @@ window.onload = function() {
         App.keysPressed[e.keyCode] = false; // indicates that the key is no longer pressed
     });
 
-	var runButton = document.getElementsByClassName("run-button")[0];
-	runButton.addEventListener("click", function(e) {
-		localStorage.setItem('code', botCodeTextArea.value);
-		App.code = botCodeTextArea.value;
+	var textarea = document.querySelector('textarea');
+	textarea.addEventListener('keydown', function(e) {
+		if (e.keyCode === 9) {
+			e.preventDefault();
+			var beforeCursorPos = this.selectionStart;
+			this.value = this.value.substring(0, this.selectionStart) + "\t" + this.value.substring(this.selectionEnd);
+			this.selectionEnd = beforeCursorPos+1;
+		}
+
+		localStorage.setItem('code', App.getCode());
 	});
 
-	App.timeDisplay = document.getElementById("timer");
-	App.timer = Date.now();
+	var runButton = document.getElementsByClassName("run-button")[0];
+	runButton.addEventListener("click", function(e) {
+		localStorage.setItem('code', App.getCode());
+		start();
+	});
 
-    window.setInterval(update, 5, 5);
+	var runButton = document.getElementsByClassName("stop-button")[0];
+	runButton.addEventListener("click", stop);
+
+	App.timeDisplay = document.getElementById("timer");
+
     window.setInterval(draw, 21, 21);
 };
 
-function update(interval) {
+function start() {
+	clearInterval(update);
+
+    var ctx = App.canvas.getContext("2d");
+
+	App.objects = {};
+
+    App.keysPressed = [];
+    App.currentState = "START";
+
+	App.loopCount = 0;
+
+	App.setCode(localStorage.getItem('code'));
+
+	App.timer = Date.now();
+	App.updateInterval = setInterval(update, 5, 5);
+}
+
+function update() {
 	var curTime = Date.now() - App.timer;
 	App.timeDisplay.textContent = Math.round(curTime)/1000;
 	if (curTime < 30000) {
+		/*
 	    var bx = App.objects.bot.getPosition().x - App.objects.bot.size.w/2;
 	    var by = App.objects.bot.getPosition().y - App.objects.bot.size.h/2;
 	    var tx = App.objects.tgt.position.x;
@@ -64,11 +93,13 @@ function update(interval) {
 	    var xDistToBeacon = bx - tx;
 		var yDistToBeacon = by - ty;
 	    var currentAngle = Math.atan2((bx-tx), (by-ty))*(180/Math.PI);
+		*/
 
 		try {
 			document.querySelector('.loop .errors').style.display = 'none';
-			eval(localStorage.getItem('code'));
+			eval(App.getCode());
 		} catch (e) {
+			stop();
 			document.querySelector('.loop .errors').style.display = 'block';
 			var errorHeading = document.querySelector('.loop .errors > h3');
 			var errorMessage = document.querySelector('.loop .errors > p');
@@ -76,15 +107,22 @@ function update(interval) {
 			errorMessage.textContent = e.message;
 		}
 
-	    App.objects.bot.update(interval);
+		for (o in App.objects) {
+			App.objects[o].update(5);
+		}
 	}
 }
 
+function stop() {
+	clearInterval(App.updateInterval);
+}
+
 function draw() {
-    var ctx = document.getElementById("field").getContext("2d");
+    var ctx = App.canvas.getContext("2d");
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     ctx.drawImage(App.background, 0, 0);
 
-    App.objects.bot.draw();
-    App.objects.tgt.draw();
+    for (o in App.objects) {
+		App.objects[o].draw();
+	}
 }
